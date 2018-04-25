@@ -79,7 +79,7 @@ public class CPU {
                         __JSR();
                         break;
                     case (0x21):
-                        __AND_IX();
+                        __AND_XI();
                         break;
                     case (0x24):
                         __BIT_ZP();
@@ -307,83 +307,173 @@ public class CPU {
     }
 
     private void __JSR() {
-
+        char LSB = memory.getByte(PC++);
+        char MSB = memory.getByte(PC++);
+        char operand = (char)(((MSB << 8) | (LSB)) + X);
+        stack[stack_pointer++] = (PC & 0xFF00)>>8;
+        stack[stack_pointer++] = PC & 0x0000;
+        PC = operand;
     }
 
-    private void __AND_IX() {
-
+    private void __AND_XI() {
+        char LSB = memory.getByte(PC++);
+        char addr = (char) ((memory.getByte(LSB+1 + X)<<8) | memory.getByte(LSB + X));
+        accumulator &= memory.getByte(addr);
+        update_flags();
     }
 
     private void __BIT_ZP() {
-
+        char LSB = memory.getByte(PC++);
+        PC++;
+        status_register[1] = ((memory.getByte(LSB) & accumulator) != 0);
+        status_register[7] = ((memory.getByte(LSB) >> 7) & 1) == 1;
+        status_register[6] = ((memory.getByte(LSB) >> 6) & 1) == 1;
+        update_flags();
     }
 
     private void __AND_ZP() {
-
+        char LSB = memory.getByte(PC++);
+        accumulator &= memory.getByte(LSB);
+        update_flags();
     }
 
     private void __ROL_ZP() {
-
+        char LSB = memory.getByte(PC++);
+        char Val = memory.getByte(LSB);
+        boolean tmp = status_register[0];
+        status_register[0] = ((Val >> 7) & 1) == 1;
+        Val <<= 1;
+        Val += tmp ? 1 : 0;
+        Val &= 0xFF;
+        memory.setByte(LSB, Val);
+        update_flags();
     }
 
     private void __PLP() {
-
+        char byt = (char)stack[--stack_pointer];
+        for(byte i = 0; i < 8; i++){
+            status_register[i] = ((byt >> i) & 1) == 1;
+        }
     }
 
     private void __AND_IM() {
-
+        char LSB = memory.getByte(PC++);
+        accumulator &= LSB;
+        update_flags();
     }
 
     private void __ROL_A() {
-
+        boolean tmp = status_register[0];
+        status_register[0] = ((accumulator >> 7) & 1) == 1;
+        accumulator <<= 1;
+        accumulator += tmp ? 1 : 0;
+        accumulator &= 0xFF;
+        update_flags();
     }
 
     private void __BIT_AS() {
-
+        char LSB = memory.getByte(PC++);
+        char MSB = memory.getByte(PC++);
+        char operand = (char)((MSB << 8) | LSB);
+        status_register[1] = ((memory.getByte(operand) & accumulator) != 0);
+        status_register[7] = ((memory.getByte(operand) >> 7) & 1) == 1;
+        status_register[6] = ((memory.getByte(operand) >> 6) & 1) == 1;
+        update_flags();
     }
 
     private void __AND_AS() {
-
+        char LSB = memory.getByte(PC++);
+        char MSB = memory.getByte(PC++);
+        char operand = (char)((MSB << 8) | LSB);
+        accumulator &= memory.getByte(operand);
+        update_flags();
     }
 
     private void __ROL_AS() {
-
+        char LSB = memory.getByte(PC++);
+        char MSB = memory.getByte(PC++);
+        char operand = (char)((MSB << 8) | LSB);
+        char Val = memory.getByte(operand);
+        boolean tmp = status_register[0];
+        status_register[0] = ((Val >> 7) & 1) == 1;
+        Val <<= 1;
+        Val += tmp ? 1 : 0;
+        Val &= 0xFF;
+        memory.setByte(operand, Val);
+        update_flags();
     }
 
     private void __BMI() {
-
+        char LSB = memory.getByte(PC++);
+        char MSB = memory.getByte(PC++);
+        char operand = (char)(((MSB << 8) | LSB));
+        if(status_register[7]) PC = operand;
     }
 
     private void __AND_IY() {
-
+        char LSB = memory.getByte(PC++);
+        char addr = (char) ((memory.getByte(LSB+1)<<8) | memory.getByte(LSB));
+        accumulator &= memory.getByte(addr + Y);
+        update_flags();
     }
 
     private void __AND_ZX() {
-
+        char LSB = memory.getByte(PC++);
+        accumulator &= memory.getByte(LSB + X);
+        update_flags();
     }
 
     private void __ROL_ZX() {
-
+        char LSB = (char)(memory.getByte(PC++) + X);
+        char Val = memory.getByte(LSB);
+        boolean tmp = status_register[0];
+        status_register[0] = ((Val >> 7) & 1) == 1;
+        Val <<= 1;
+        Val += tmp ? 1 : 0;
+        Val &= 0xFF;
+        memory.setByte(LSB, Val);
+        update_flags();
     }
 
     private void __SEC() {
-
+        status_register[0] = true;
     }
 
     private void __AND_AY() {
-
+        char LSB = memory.getByte(PC++);
+        char MSB = memory.getByte(PC++);
+        char operand = (char)((MSB << 8) | LSB);
+        accumulator &= memory.getByte(operand + Y);
+        update_flags();
     }
 
     private void __AND_AX() {
-
+        char LSB = memory.getByte(PC++);
+        char MSB = memory.getByte(PC++);
+        char operand = (char)((MSB << 8) | LSB);
+        accumulator &= memory.getByte(operand + X);
+        update_flags();
     }
 
     private void __ROL_AX() {
-
+        char LSB = memory.getByte(PC++);
+        char MSB = memory.getByte(PC++);
+        char operand = (char) (((MSB << 8) | LSB) + X);
+        char Val = memory.getByte(operand);
+        boolean tmp = status_register[0];
+        status_register[0] = ((Val >> 7) & 1) == 1;
+        Val <<= 1;
+        Val += tmp ? 1 : 0;
+        Val &= 0xFF;
+        memory.setByte(operand, Val);
+        update_flags();
     }
 
     private void __RTI() {
-
+        for(int i = 7; i != 0; i--) {
+            status_register[i] = (boolean) stack[--stack_pointer];
+        }
+        PC = (char) (((char) stack[--stack_pointer]) |  ((char) stack[stack_pointer] << 8));
     }
 
     private void __EOR_IX() {

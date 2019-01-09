@@ -1,5 +1,7 @@
 package com.jacobhicks;
 
+import com.sun.org.apache.bcel.internal.generic.NOP;
+
 import java.lang.reflect.Array;
 import java.util.Arrays;
 
@@ -26,11 +28,9 @@ public class CPU {
     int accumulator = 0;
     int X = 0, Y = 0;
     int PC = 0;
-    int stack_pointer = 0xFD;
     int tempaddr;
     boolean[] status_register = new boolean[8];
     byte P;
-    Object[] stack = new Object[0xFF];
 
     CPU(MEMORY mem){
         memory = mem;
@@ -41,18 +41,27 @@ public class CPU {
         PC = pos;
         new Thread(() -> {
             while(PC < 0xFFFF) {
-                int high = memory.getByte(PC);
+                int high = (int)memory.getByte(PC);
                 P = statusByte(status_register);
-                DEBUGCPU.pulse(PC, high, accumulator, X, Y, P, stack_pointer);
-                System.out.printf("%04X |%04X|: %02X ", PC, stack_pointer, high);
+                //DEBUGCPU.pulse(PC, high, accumulator, X, Y, P, memory.getStack_pointer());
+                //System.out.printf("%04X |%04X|: %02X ", PC, memory.getStack_pointer(), high);
                 PC++;
-                if (accumulator == -256) accumulator = ~accumulator;
+                if(PC == 0xD444) {
+                    new NOP();
+                    new NOP();
+                }
+                //if (accumulator == -256) accumulator = ~accumulator;
                 switch (high) {
                     case (0x00):
                         __BRK();
                         break;
                     case (0x01):
                         __ORA(ADDRESSINGMODE.XI);
+                        break;
+                    case (0x04):
+                        __NOP();
+                        __NOP();
+                        PC++;
                         break;
                     case (0x05):
                         __ORA(ADDRESSINGMODE.ZP);
@@ -69,6 +78,12 @@ public class CPU {
                     case (0x0A):
                         __ASL(ADDRESSINGMODE.A);
                         break;
+                    case (0x0C):
+                        __NOP();
+                        __NOP();
+                        __NOP();
+                        PC+=2;
+                        break;
                     case (0x0D):
                         __ORA(ADDRESSINGMODE.AS);
                         break;
@@ -81,6 +96,11 @@ public class CPU {
                     case (0x11):
                         __ORA(ADDRESSINGMODE.IY);
                         break;
+                    case (0x14):
+                        __NOP();
+                        __NOP();
+                        PC++;
+                        break;
                     case (0x15):
                         __ORA(ADDRESSINGMODE.ZX);
                         break;
@@ -92,6 +112,15 @@ public class CPU {
                         break;
                     case (0x19):
                         __ORA(ADDRESSINGMODE.AY);
+                        break;
+                    case (0x1A):
+                        __NOP();
+                        break;
+                    case (0x1C):
+                        __NOP();
+                        __NOP();
+                        __NOP();
+                        PC+=2;
                         break;
                     case (0x1D):
                         __ORA(ADDRESSINGMODE.AX);
@@ -138,6 +167,11 @@ public class CPU {
                     case (0x31):
                         __AND(ADDRESSINGMODE.IY);
                         break;
+                    case (0x34):
+                        __NOP();
+                        __NOP();
+                        PC++;
+                        break;
                     case (0x35):
                         __AND(ADDRESSINGMODE.ZX);
                         break;
@@ -150,6 +184,15 @@ public class CPU {
                     case (0x39):
                         __AND(ADDRESSINGMODE.AY);
                         break;
+                    case (0x3A):
+                        __NOP();
+                        break;
+                    case (0x3C):
+                        __NOP();
+                        __NOP();
+                        __NOP();
+                        PC+=2;
+                        break;
                     case (0x3D):
                         __AND(ADDRESSINGMODE.AX);
                         break;
@@ -161,6 +204,11 @@ public class CPU {
                         break;
                     case (0x41):
                         __EOR(ADDRESSINGMODE.IX);
+                        break;
+                    case (0x44):
+                        __NOP();
+                        __NOP();
+                        PC++;
                         break;
                     case (0x45):
                         __EOR(ADDRESSINGMODE.ZP);
@@ -192,6 +240,14 @@ public class CPU {
                     case (0x51):
                         __EOR(ADDRESSINGMODE.IY);
                         break;
+                    case (0x54):
+                        __NOP();
+                        __NOP();
+                        PC++;
+                        break;
+                    case (0x55):
+                        __EOR(ADDRESSINGMODE.ZX);
+                        break;
                     case (0x56):
                         __LSR(ADDRESSINGMODE.ZX);
                         break;
@@ -200,6 +256,15 @@ public class CPU {
                         break;
                     case (0x59):
                         __EOR(ADDRESSINGMODE.AY);
+                        break;
+                    case (0x5A):
+                        __NOP();
+                        break;
+                    case (0x5C):
+                        __NOP();
+                        __NOP();
+                        __NOP();
+                        PC+=2;
                         break;
                     case (0x5D):
                         __EOR(ADDRESSINGMODE.AX);
@@ -212,6 +277,11 @@ public class CPU {
                         break;
                     case (0x61):
                         __ADC(ADDRESSINGMODE.IX);
+                        break;
+                    case (0x64):
+                        __NOP();
+                        __NOP();
+                        PC++;
                         break;
                     case (0x65):
                         __ADC(ADDRESSINGMODE.ZP);
@@ -228,11 +298,25 @@ public class CPU {
                     case (0x6A):
                         __ROR(ADDRESSINGMODE.A);
                         break;
+                    case (0x6C):
+                        __JMP(ADDRESSINGMODE.IM);
+                        break;
+                    case (0x6D):
+                        __ADC(ADDRESSINGMODE.AS);
+                        break;
+                    case (0x6E):
+                        __ROR(ADDRESSINGMODE.AS);
+                        break;
                     case (0x70):
                         __BVS();
                         break;
                     case (0x71):
                         __ADC(ADDRESSINGMODE.IY);
+                        break;
+                    case (0x74):
+                        __NOP();
+                        __NOP();
+                        PC++;
                         break;
                     case (0x75):
                         __ADC(ADDRESSINGMODE.ZX);
@@ -246,14 +330,33 @@ public class CPU {
                     case (0x79):
                         __ADC(ADDRESSINGMODE.AY);
                         break;
+                    case (0x7A):
+                        __NOP();
+                        break;
+                    case (0x7C):
+                        __NOP();
+                        __NOP();
+                        __NOP();
+                        PC+=2;
+                        break;
                     case (0x7D):
                         __ADC(ADDRESSINGMODE.AX);
                         break;
                     case (0x7E):
                         __ROR(ADDRESSINGMODE.AX);
                         break;
+                    case (0x80):
+                        __NOP();
+                        __NOP();
+                        PC++;
+                        break;
                     case (0x81):
                         __STA(ADDRESSINGMODE.IX);
+                        break;
+                    case (0x82):
+                        __NOP();
+                        __NOP();
+                        PC++;
                         break;
                     case (0x84):
                         __STY(ADDRESSINGMODE.ZP);
@@ -266,6 +369,11 @@ public class CPU {
                         break;
                     case (0x88):
                         __DEY();
+                        break;
+                    case (0x89):
+                        __NOP();
+                        __NOP();
+                        PC++;
                         break;
                     case (0x8A):
                         __TXA();
@@ -292,7 +400,7 @@ public class CPU {
                         __STA(ADDRESSINGMODE.ZX);
                         break;
                     case (0x96):
-                        __STX(ADDRESSINGMODE.ZX);
+                        __STX(ADDRESSINGMODE.ZY);
                         break;
                     case (0x98):
                         __TYA();
@@ -315,6 +423,9 @@ public class CPU {
                     case (0xA2):
                         __LDX(ADDRESSINGMODE.IM);
                         break;
+                    case(0xA3):
+                        __LAX(ADDRESSINGMODE.IX);
+                        break;
                     case (0xA4):
                         __LDY(ADDRESSINGMODE.ZP);
                         break;
@@ -323,6 +434,9 @@ public class CPU {
                         break;
                     case (0xA6):
                         __LDX(ADDRESSINGMODE.ZP);
+                        break;
+                    case(0xA7):
+                        __LAX(ADDRESSINGMODE.ZP);
                         break;
                     case (0xA8):
                         __TAY();
@@ -342,11 +456,17 @@ public class CPU {
                     case (0xAE):
                         __LDX(ADDRESSINGMODE.AS);
                         break;
+                    case(0xAF):
+                        __LAX(ADDRESSINGMODE.AS);
+                        break;
                     case (0xB0):
                         __BCS();
                         break;
                     case (0xB1):
                         __LDA(ADDRESSINGMODE.IY);
+                        break;
+                    case (0xB3):
+                        __LAX(ADDRESSINGMODE.IY);
                         break;
                     case (0xB4):
                         __LDY(ADDRESSINGMODE.ZX);
@@ -355,7 +475,10 @@ public class CPU {
                         __LDA(ADDRESSINGMODE.ZX);
                         break;
                     case (0xB6):
-                        __LDX(ADDRESSINGMODE.ZX);
+                        __LDX(ADDRESSINGMODE.ZY);
+                        break;
+                    case (0xB7):
+                        __LAX(ADDRESSINGMODE.ZY);
                         break;
                     case (0xB8):
                         __CLV();
@@ -375,11 +498,19 @@ public class CPU {
                     case (0xBE):
                         __LDX(ADDRESSINGMODE.AY);
                         break;
+                    case(0xBF):
+                        __LAX(ADDRESSINGMODE.AY);
+                        break;
                     case (0xC0):
                         __CPY(ADDRESSINGMODE.IM);
                         break;
                     case (0xC1):
                         __CMP(ADDRESSINGMODE.IX);
+                        break;
+                    case (0xC2):
+                        __NOP();
+                        __NOP();
+                        PC++;
                         break;
                     case (0xC4):
                         __CPY(ADDRESSINGMODE.ZP);
@@ -414,6 +545,11 @@ public class CPU {
                     case (0xD1):
                         __CMP(ADDRESSINGMODE.IY);
                         break;
+                    case (0xD4):
+                        __NOP();
+                        __NOP();
+                        PC++;
+                        break;
                     case (0xD5):
                         __CMP(ADDRESSINGMODE.ZX);
                         break;
@@ -426,6 +562,15 @@ public class CPU {
                     case (0xD9):
                         __CMP(ADDRESSINGMODE.AY);
                         break;
+                    case (0xDA):
+                        __NOP();
+                        break;
+                    case (0xDC):
+                        __NOP();
+                        __NOP();
+                        __NOP();
+                        PC+=2;
+                        break;
                     case (0xDD):
                         __CMP(ADDRESSINGMODE.AX);
                         break;
@@ -437,6 +582,11 @@ public class CPU {
                         break;
                     case (0xE1):
                         __SBC(ADDRESSINGMODE.IX);
+                        break;
+                    case (0xE2):
+                        __NOP();
+                        __NOP();
+                        PC++;
                         break;
                     case (0xE4):
                         __CPX(ADDRESSINGMODE.ZP);
@@ -471,6 +621,11 @@ public class CPU {
                     case (0xF1):
                         __SBC(ADDRESSINGMODE.IY);
                         break;
+                    case (0xF4):
+                        __NOP();
+                        __NOP();
+                        PC++;
+                        break;
                     case (0xF5):
                         __SBC(ADDRESSINGMODE.ZX);
                         break;
@@ -483,6 +638,15 @@ public class CPU {
                     case (0xF9):
                         __SBC(ADDRESSINGMODE.AY);
                         break;
+                    case (0xFA):
+                        __NOP();
+                        break;
+                    case (0xFC):
+                        __NOP();
+                        __NOP();
+                        __NOP();
+                        PC+=2;
+                        break;
                     case (0xFD):
                         __SBC(ADDRESSINGMODE.AX);
                         break;
@@ -491,15 +655,16 @@ public class CPU {
                         break;
                     default:
                         System.out.print("Unsupported Opcode");
+                        System.exit(1);
                 }
-                System.out.println();//" " + Arrays.toString(status_register) + " " + statusByte());
+                //System.out.println();//" " + Arrays.toString(status_register) + " " + statusByte());
             }
         }).start();
     }
 
     private void __BRK() {
-        stack[stack_pointer--] = PC;
-        stack[stack_pointer--] = status_register;
+        memory.push(PC);
+        memory.push(status_register);
         status_register[2] = true;
         PC = memory.breakvector;
     }
@@ -511,22 +676,28 @@ public class CPU {
 
     private void __ASL(ADDRESSINGMODE am) {
         int LSB = getValue(am);
-        int tmp = (int)(LSB << 1);
-        if(tmp>0xFF) status_register[0x0] = true;
+        int tmp = (LSB << 1);
+        status_register[0] = (tmp > 0xFF);
         tmp &= 0xFF;
         if(am != ADDRESSINGMODE.A) {
-            memory.setByte(LSB, tmp);
+            memory.setByte(tempaddr, tmp);
         }
         else {
             accumulator = tmp;
         }
-        update_flags();
+        status_register[1] = (tmp == 0);
+        status_register[7] = (tmp >= 0x80);
+        //update_flags();
     }
 
     private void __PHP() {
+        if(PC == 0xC709) {
+            new NOP();
+        }
         status_register[4] = true;
         status_register[5] = true;
-        stack[stack_pointer--] = status_register;
+        memory.push(status_register.clone());
+        //System.out.printf("%n%02X @ $%02X%n", statusByte((boolean[])memory.peak()), memory.getStack_pointer());
         status_register[4] = false;
     }
 
@@ -543,24 +714,24 @@ public class CPU {
     }
 
     private void __JSR() {
-        int LSB = memory.getByte(PC++);
-        int MSB = memory.getByte(PC);
+        int LSB = (int)memory.getByte(PC++);
+        int MSB = (int)memory.getByte(PC);
         int operand = (int)(((MSB << 8) | (LSB)));
-        stack[stack_pointer--] = (PC & 0xFF00)>>8;
-        stack[stack_pointer--] = PC & 0x00FF;
+        memory.push((PC & 0xFF00)>>8);
+        memory.push(PC & 0x00FF);
         PC = operand;
     }
 
     private void __AND(ADDRESSINGMODE am) {
-        if(accumulator > Byte.MAX_VALUE || accumulator < Byte.MIN_VALUE) accumulator = ~accumulator;
+        //if(accumulator > Byte.MAX_VALUE || accumulator < Byte.MIN_VALUE) accumulator = ~accumulator;
         accumulator &= getValue(am);
-        if(accumulator > Byte.MAX_VALUE) accumulator = ~accumulator - 0x10;
+        //if(accumulator > Byte.MAX_VALUE) accumulator = ~accumulator - 0x10;
         update_flags();
     }
 
     private void __BIT(ADDRESSINGMODE am) {
         int LSB = getValue(am);
-        System.out.print(" " + LSB);
+        //System.out.print(" " + LSB);
         int tmp = accumulator;
         if(accumulator < 0) accumulator = ~accumulator;
         if(LSB < 0) LSB = ~LSB;
@@ -588,9 +759,9 @@ public class CPU {
 
     private void __PLP() {
         try {
-            status_register = (boolean[]) stack[stack_pointer + 1];
+            status_register = (boolean[]) memory.peak();
         } catch (Exception e) {
-            int byt = (int) stack[stack_pointer + 1];
+            int byt = (int) memory.peak();
             if (byt == -256) byt = ~byt;
             for (byte i = 0; i < 8; i++) {
                 status_register[i] = ((byt >> i) & 1) == 1;
@@ -598,7 +769,7 @@ public class CPU {
         }
         status_register[4] = false;
         status_register[5] = true;
-        stack_pointer++;
+        memory.setStack_pointer(memory.getStack_pointer() + 1);
     }
 
     private void __BMI() {
@@ -614,8 +785,18 @@ public class CPU {
     }
 
     private void __RTI() {
-        status_register = (boolean[]) stack[++stack_pointer];
-        PC = (((int) stack[++stack_pointer]) |  ((int) stack[++stack_pointer] << 8));
+        try {
+            status_register = (boolean[]) memory.peak();
+        } catch (ClassCastException e) {
+            int byt = (int) memory.peak();
+            if (byt == -256) byt = ~byt;
+            for (byte i = 0; i < 8; i++) {
+                status_register[i] = ((byt >> i) & 1) == 1;
+            }
+        }
+        status_register[5] = true;
+        memory.setStack_pointer(memory.getStack_pointer() + 1);
+        PC = (((int) memory.pop()) |  ((int) memory.pop() << 8));
     }
 
     private void __EOR(ADDRESSINGMODE am) {
@@ -638,15 +819,23 @@ public class CPU {
         else {
             accumulator = Val;
         }
-        update_flags();
+        status_register[1] = (Val == 0);
+        status_register[7] = (Val >= 0x80);
+        //update_flags();
     }
 
     private void __PHA() {
-        stack[stack_pointer--] = (accumulator);
+        memory.push(accumulator);
+        //System.out.printf("%n%02X @ $%02X%n", statusByte(status_register), memory.getStack_pointer());
     }
 
     private void __JMP(ADDRESSINGMODE am) {
-        PC = getIM();
+        if(am.equals(ADDRESSINGMODE.AS)) {
+            PC = getIM();
+        }
+        else {
+            PC = getIN();
+        }
     }
 
     private void __BVC() {
@@ -656,7 +845,7 @@ public class CPU {
     }
 
     private void __RTS() {
-        PC = ((int) stack[++stack_pointer] | ((int) stack[++stack_pointer] << 8)) + 1;
+        PC = ((int) memory.pop() | ((int) memory.pop() << 8)) + 1;
     }
 
     private void __ADC(ADDRESSINGMODE am) {
@@ -682,17 +871,23 @@ public class CPU {
         else {
             accumulator = Val;
         }
-        update_flags();
+        status_register[1] = (Val == 0);
+        status_register[7] = Val >= 0x80;
+        //update_flags();
     }
 
     private void __PLA() {
+        if(PC == 0xC71C) {
+            //System.out.println();
+        }
         try {
-            accumulator = (int) stack[stack_pointer + 1];
+            accumulator = (int) memory.peak();
         }
         catch (ClassCastException e) {
-            accumulator = statusByte((boolean[]) stack[stack_pointer + 1]) + 0x10;
+            accumulator = statusByte((boolean[]) memory.peak()) | 0b00110000;
         }
-        stack_pointer++;
+        //System.out.printf("-: %02X @ $%02X%n", accumulator, memory.getStack_pointer());
+        memory.setStack_pointer(memory.getStack_pointer() + 1);
         update_flags();
     }
 
@@ -738,7 +933,7 @@ public class CPU {
     }
 
     private void __TXS() {
-        stack_pointer = X;
+        memory.setStack_pointer(X);
         update_flags_S();
     }
 
@@ -791,7 +986,7 @@ public class CPU {
     }
 
     private void __TSX() {
-        X = stack_pointer;
+        X = memory.getStack_pointer();
         update_flags_X();
     }
 
@@ -799,7 +994,7 @@ public class CPU {
         int Val = getValue(am);
         Val &= 0xFF;
         int tmp = Y;
-        System.out.print(" " + Y + " - " + Val + " = " + (Y - Val) + " ");
+        //System.out.print(" " + Y + " - " + Val + " = " + (Y - Val) + " ");
         Y -= Val;
         status_register[0] = (Y >= 0);
         status_register[7] = (Y >= 0x80 || Y < 0);
@@ -811,7 +1006,7 @@ public class CPU {
         int Val = getValue(am);
         Val &= 0xFF;
         int tmp = accumulator;
-        System.out.print(" " + accumulator + " - " + Val + " = " + (accumulator - Val) + " ");
+        //System.out.print(" " + accumulator + " - " + Val + " = " + (accumulator - Val) + " ");
         accumulator -= Val;
         status_register[0] = (accumulator >= 0);
         status_register[7] = (accumulator >= 0x80 || accumulator < 0);
@@ -820,8 +1015,11 @@ public class CPU {
     }
 
     private void __DEC(ADDRESSINGMODE am) {
-        int Val = getValue(am);
-        memory.setByte(tempaddr, --Val);
+        int Val = getValue(am) - 1;
+        Val &= 0xFF;
+        status_register[1] = Val == 0;
+        status_register[7] = Val >= 0x80;
+        memory.setByte(tempaddr, Val);
     }
 
     private void __INY() {
@@ -844,7 +1042,7 @@ public class CPU {
         int Val = getValue(am);
         Val &= 0xFF;
         int tmp = X;
-        System.out.print(" " + X + " - " + Val + " = " + (X - Val) + " ");
+        //System.out.print(" " + X + " - " + Val + " = " + (X - Val) + " ");
         X -= Val;
         status_register[0] = (X >= 0);
         status_register[7] = (X >= 0x80 || X < 0);
@@ -864,8 +1062,11 @@ public class CPU {
     }
 
     private void __INC(ADDRESSINGMODE am) {
-        int Val = getValue(am);
-        memory.setByte(tempaddr, --Val);
+        int Val = getValue(am) + 1;
+        Val &= 0xFF;
+        status_register[1] = Val == 0;
+        status_register[7] = Val >= 0x80;
+        memory.setByte(tempaddr, Val);
     }
 
     private void __INX() {
@@ -881,96 +1082,105 @@ public class CPU {
         PC++;
     }
 
+    private void __LAX(ADDRESSINGMODE am) {
+        __LDA(am);
+        X = accumulator;
+    }
+
     private int getIX() {
-        int LSB = memory.getByte(PC++);
-        int MSB = memory.getByte(PC);
-        System.out.printf("%02X %02X", LSB, MSB);
-        int addr = (int) ((LSB | (MSB<<8)));
-        tempaddr = addr;
-        return memory.getByte(memory.getByte(addr) + X);
+        int LSB = (int) memory.getByte(PC++);
+        //int MSB = (int) memory.getByte(PC);
+        int addr = (LSB + X) & 0xFF;// | (MSB<<8)));
+        //System.out.printf("%02X", LSB);//, MSB);
+        ////System.out.printf("%n%02X %02X %04X", (int) memory.getByte(addr), ((int) memory.getByte((addr + 1) & 0xFF)), ((int) memory.getByte(addr) | ((int) memory.getByte((addr + 1) & 0xFF) << 8)));
+        tempaddr = addr = ((int) memory.getByte(addr) | ((int) memory.getByte((addr + 1) & 0xFF) << 8));
+        return (int) memory.getByte(addr);
     }
 
     private int getXI() {
-        int LSB = memory.getByte(PC++);
-        int MSB = memory.getByte(PC);
-        System.out.printf("%02X %02X", LSB, MSB);
-        int addr = (int) ((LSB | (MSB<<8)) + X);
-        tempaddr = addr;
-        return memory.getByte(memory.getByte(addr));
+        int LSB = (int) memory.getByte(PC++);
+        //int MSB = (int) memory.getByte(PC);
+        int addr = (LSB + X) & 0xFF;// | (MSB<<8)));
+        //System.out.printf("%02X", LSB);//, MSB);
+        //System.out.printf("%n%02X %02X %04X", (int) memory.getByte(addr), ((int) memory.getByte((addr + 1) & 0xFF)), ((int) memory.getByte(addr) | ((int) memory.getByte((addr + 1) & 0xFF) << 8)));
+        tempaddr = addr = ((int) memory.getByte(addr) | ((int) memory.getByte((addr + 1) & 0xFF) << 8)) + X;
+        return (int) memory.getByte(addr);
     }
 
     private int getIY() {
-        int LSB = memory.getByte(PC++);
-        int MSB = memory.getByte(PC);
-        System.out.printf("%02X %02X", LSB, MSB);
-        int addr = (int) (LSB | (MSB<<8));
-        tempaddr = addr;
-        return memory.getByte(memory.getByte(addr) + Y);
+        int LSB = (int) memory.getByte(PC++);
+        //int MSB = (int) memory.getByte(PC);
+        int addr = (LSB) & 0xFF;// | (MSB<<8)));
+        //System.out.printf("%02X", LSB);//, MSB);
+        //System.out.printf("%n%02X %02X %02X %04X", addr, (int) memory.getByte(addr), ((int) memory.getByte((addr + 1) & 0xFF)), (((int) memory.getByte(addr) | ((int) memory.getByte((addr + 1) & 0xFF) << 8)) + Y) & 0xFFFF);
+        tempaddr = addr = ((((int) memory.getByte(addr) | ((int) memory.getByte((addr + 1) & 0xFF) << 8)) + Y) & 0xFFFF);
+        return (int) memory.getByte(addr);
     }
 
     private int getYI() {
-        int LSB = memory.getByte(PC++);
-        int MSB = memory.getByte(PC);
-        System.out.printf("%02X %02X", LSB, MSB);
-        int addr = (int) ((LSB | (MSB<<8)) + Y);
-        tempaddr = addr;
-        return memory.getByte(memory.getByte(addr));
+        int LSB = (int) memory.getByte(PC++);
+        //int MSB = (int) memory.getByte(PC);
+        int addr = (LSB + Y) & 0xFF;// | (MSB<<8)));
+        //System.out.printf("%02X", LSB);//, MSB);
+        //System.out.printf("%n%02X %02X %04X", (int) memory.getByte(addr), ((int) memory.getByte((addr + 1) & 0xFF)), ((int) memory.getByte(addr) | ((int) memory.getByte((addr + 1) & 0xFF) << 8)));
+        tempaddr = addr = ((int) memory.getByte(addr) | ((int) memory.getByte((addr + 1) & 0xFF) << 8)) + X;
+        return (int) memory.getByte(addr);
     }
 
     private  int getZP() {
-        int LSB = memory.getByte(PC++);
-        System.out.printf("%02X", LSB);
+        int LSB = (int) memory.getByte(PC++);
+        //System.out.printf("%02X", LSB);
         tempaddr = LSB;
-        return memory.getByte(tempaddr);
+        return (int) memory.getByte(tempaddr);
     }
 
     private int getZX() {
-        int LSB = (int) (memory.getByte(PC + X));
-        System.out.printf("%02X", LSB);
-        tempaddr = (int) (PC + X);
-        PC++;
-        return LSB;
+        int LSB = (int) (memory.getByte(PC++));
+        //System.out.printf("%02X", LSB);
+        tempaddr = (int) ((LSB + X) & 0xFF);
+        return (int) memory.getByte(tempaddr);
     }
 
     private int getZY() {
-        int LSB = (int) (memory.getByte(PC + Y));
-        System.out.printf("%02X", LSB);
-        tempaddr = (int) (PC + Y);
-        PC++;
-        return LSB;
+        int LSB = (int) (memory.getByte(PC++));
+        //System.out.printf("%02X", LSB);
+        tempaddr = (int) ((LSB + Y) & 0xFF);
+        return (int) memory.getByte(tempaddr);
     }
 
     private int getAX() {
-        int LSB = memory.getByte(PC++);
-        int MSB = memory.getByte(PC);
-        System.out.printf("%02X %02X", LSB, MSB);
+        int LSB = (int) memory.getByte(PC++);
+        int MSB = (int) memory.getByte(PC++);
+        //System.out.printf("%02X %02X", LSB, MSB);
         int operand = (int)((MSB << 8) | (LSB));
         tempaddr = (int) (operand + X);
-        return memory.getByte(operand + X);
+        return (int) memory.getByte(operand + X);
     }
 
     private int getAY() {
-        int LSB = memory.getByte(PC++);
-        int MSB = memory.getByte(PC);
-        System.out.printf("%02X %02X", LSB, MSB);
+        int LSB = (int) memory.getByte(PC++);
+        int MSB = (int) memory.getByte(PC++);
+        //System.out.printf("%02X %02X", LSB, MSB);
         int operand = (int)((MSB << 8) | (LSB));
-        tempaddr = (int) (operand + Y);
-        return memory.getByte(operand + Y);
+        tempaddr = (int) ((operand + Y) & 0xFFFF);
+        return (int) memory.getByte(tempaddr);
     }
 
     private int getIM() {
-        int LSB = memory.getByte(PC++);
-        int MSB = memory.getByte(PC);
-        System.out.printf("%02X %02X", LSB, MSB);
-        return ((MSB << 8) | LSB);
+        int LSB = (int) memory.getByte(PC++);
+        int MSB = (int) memory.getByte(PC);
+        int addr = ((MSB << 8) | LSB);
+        //System.out.printf("%02X %02X", LSB, MSB);
+        //System.out.printf("%n%02X %02X %04X", (int) memory.getByte(addr), ((int) memory.getByte((addr + 1) & 0xFF)), ((int) memory.getByte(addr) | ((int) memory.getByte((addr + 1) & 0xFF) << 8)));
+        return addr;
     }
 
     private int getAS() {
-        int LSB = memory.getByte(PC++);
-        int MSB = memory.getByte(PC++);
-        System.out.printf("%02X %02X", LSB, MSB);
+        int LSB = (int) memory.getByte(PC++);
+        int MSB = (int) memory.getByte(PC++);
+        //System.out.printf("%02X %02X", LSB, MSB);
         tempaddr = (int)((MSB << 8) | LSB);
-        return (memory.getByte(tempaddr + 1) << 8) | (memory.getByte(tempaddr));
+        return (int) memory.getByte(tempaddr);
     }
 
     private int getA() {
@@ -978,19 +1188,19 @@ public class CPU {
     }
 
     private int getIN() {
-        int LSB = memory.getByte(PC++);
-        int MSB = memory.getByte(PC);
-        System.out.printf("%02X %02X", LSB, MSB);
-        int addr = (int) (LSB | (MSB<<8));
-        tempaddr = addr;
-        return memory.getByte(memory.getByte(addr));
+        int LSB = (int) memory.getByte(PC++);
+        int MSB = (int) memory.getByte(PC++);
+        //System.out.printf("%02X %02X", LSB, MSB);
+        tempaddr = (int)((MSB << 8) | LSB);
+        //System.out.printf("%n%02X %02X %04X", (int) memory.getByte(tempaddr), ((int) memory.getByte((tempaddr + 1) & 0xFF)), ((int) memory.getByte(tempaddr) | ((int) memory.getByte((tempaddr + 1) & 0xFF) << 8)));
+        return (int) memory.getByte(tempaddr) | ((int) memory.getByte((tempaddr & 0xFF00) | ((tempaddr+1) & 0xFF)) << 8);
     }
 
     private int getRA() {
-        int LSB = memory.getByte(PC);
-        System.out.printf("%02X", LSB);
+        int LSB = (int) memory.getByte(PC);
+        //System.out.printf("%02X", LSB);
         if(LSB >= 0x80){
-            return (PC - (LSB - 0x79)) + 1;
+            return (PC + (LSB - 0xFF));
         }
         return (PC + LSB) + 1;
     }
@@ -1015,7 +1225,7 @@ public class CPU {
 
     private void update_flags() {
         accumulator &= 0xFF;
-        status_register[7] = (accumulator > Byte.MAX_VALUE);
+        status_register[7] = (accumulator >= 0x80);
         status_register[1] = accumulator == 0;
     }
 
@@ -1032,14 +1242,14 @@ public class CPU {
     }
 
     private void update_flags_S() {
-        stack_pointer &= 0xFF;
-        if(stack_pointer > Byte.MAX_VALUE) {
+        memory.setStack_pointer(memory.getStack_pointer() & 0xFF);
+        if(memory.getStack_pointer() > Byte.MAX_VALUE) {
             status_register[7] = true;
         }
-        status_register[1] = stack_pointer == 0;
+        status_register[1] = memory.getStack_pointer() == 0;
     }
 
-    private byte statusByte(boolean[] status_register) {
+    private static byte statusByte(boolean[] status_register) {
         byte res = 0;
         for(int i = 0; i < status_register.length; i++) {
             res += status_register[i] ? (1 << i) : 0;

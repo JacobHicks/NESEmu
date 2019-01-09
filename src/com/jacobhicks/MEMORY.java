@@ -21,7 +21,8 @@ public class MEMORY {
     private boolean[] flags9 = new boolean[8];
     private boolean[] flags10 = new boolean[8];
     private int prgramspace;
-    private int[] mem = new int[0x10000];
+    private Object[] mem = new Object[0x10000];
+    private int stack_pointer = 0xFD;
     private int mapper;
     int resetvector;
     int breakvector;
@@ -33,12 +34,34 @@ public class MEMORY {
         Arrays.fill(mem, 0x0000, mem.length, 0);
     }
 
-    int getByte(int i){
+    Object getByte(int i){
         return mem[i];
+    }
+
+    Object peak(){
+        return mem[0x101 + stack_pointer];
+    }
+
+    Object pop(){
+        Object val = mem[0x100 + ++stack_pointer];
+        //mem[0x100 + stack_pointer] = null;
+        return val;
     }
 
     void setByte(int i, int x){
         mem[i] = x;
+    }
+
+    int getStack_pointer() {
+        return stack_pointer;
+    }
+
+    void setStack_pointer(int stack_pointer) {
+        this.stack_pointer = stack_pointer;
+    }
+
+    void push(Object B) {
+        mem[0x100 + stack_pointer--] = B;
     }
 
     int flash_rom(int[] rom){
@@ -88,8 +111,8 @@ public class MEMORY {
                     mem[0x8000 + i] = rom[16 + (i & (prgromspace-1))];
                 }
             }
-            resetvector = mem[0xFFFC] | (mem[0xFFFD] << 8);
-            breakvector = mem[0xFFFE] | (mem[0xFFFF] << 8);
+            resetvector = (int)mem[0xFFFC] | (((int)mem[0xFFFD]) << 8);
+            breakvector = (int)mem[0xFFFE] | ((int)mem[0xFFFF] << 8);
             System.out.println(publisher + " " + board + " " + resetvector);
             //System.exit(0);
             return resetvector;
